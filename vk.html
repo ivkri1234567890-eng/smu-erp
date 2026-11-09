@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Ключ ВК для Виты</title>
+<style>
+:root{--bg:#07142b;--card:#0f2246;--line:#23406f;--text:#e8eefb;--muted:#a8b9da;--accent:#1f7bff;--bad:#ffb3a1}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:17px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:640px;margin:0 auto;padding:24px 16px 48px;display:flex;flex-direction:column;gap:16px}
+h1{font-size:22px;margin:0}
+p{margin:0}
+.muted{color:var(--muted);font-size:15px}
+label{font-weight:600}
+input,textarea{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--text);
+  font-family:inherit;font-size:16px}
+textarea{min-height:120px;word-break:break-all}
+button{min-height:52px;padding:12px 18px;border-radius:14px;border:1px solid var(--accent);background:var(--accent);color:#fff;
+  font-family:inherit;font-size:17px;font-weight:600;cursor:pointer;width:100%}
+button.sec{background:var(--card);border-color:var(--line)}
+.err{color:var(--bad)}
+ol{margin:0;padding-left:22px}
+#done,#err{display:none;flex-direction:column;gap:12px}
+</style>
+</head>
+<body>
+<main>
+<h1>Разрешить Вите редактировать посты ВК</h1>
+<section id="start" style="display:flex;flex-direction:column;gap:12px">
+  <p class="muted">Нужно один раз, чтобы добавить ссылки в уже запланированные посты группы. Ключ увидите только вы — страница его никуда не отправляет и не сохраняет.</p>
+  <label for="app">ID приложения в VK ID</label>
+  <input id="app" inputmode="numeric" autocomplete="off" placeholder="например, 53123456">
+  <p class="muted">Где взять: id.vk.ru/business/go → «Мои приложения» → ваше приложение → «ID приложения».</p>
+  <button id="go" type="button">Войти через VK ID</button>
+</section>
+<section id="done">
+  <p><b>Готово.</b> Это ваш ключ (действует около часа):</p>
+  <textarea id="token" readonly></textarea>
+  <button id="copy" type="button" class="sec">Скопировать ключ</button>
+  <ol>
+    <li>Откройте <b>Рабочий стол\MarketologVita\.env</b> в «Блокноте».</li>
+    <li>Если строка <b>VK_USER_TOKEN=</b> уже есть — замените всё после «=». Если нет — добавьте в конец новую строку <b>VK_USER_TOKEN=</b> и вставьте ключ сразу после «=».</li>
+    <li>Сохраните (Ctrl+S) и напишите Claude «вставил».</li>
+  </ol>
+  <p class="muted">Ключ не присылайте в чат — это доступ к вашей странице ВК.</p>
+</section>
+<section id="err"><p class="err" id="errtext"></p><button id="again" type="button" class="sec">Попробовать снова</button></section>
+</main>
+<script>
+(function () {
+  var REDIRECT = 'https://ivkri1234567890-eng.github.io/smu-erp/';
+  var SCOPE = 'wall groups photos';
+  var $ = function (id) { return document.getElementById(id); };
+  function rnd(n) {
+    var a = new Uint8Array(n); crypto.getRandomValues(a);
+    var s = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_', out = '';
+    for (var i = 0; i < n; i++) out += s[a[i] % s.length];
+    return out;
+  }
+  function b64url(buf) {
+    var b = String.fromCharCode.apply(null, new Uint8Array(buf));
+    return btoa(b).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function store(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function load(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
+  function fail(t) { $('start').style.display = 'none'; $('err').style.display = 'flex'; $('errtext').textContent = t; }
+  $('app').value = load('vk_app');
+  $('go').onclick = async function () {
+    var app = $('app').value.replace(/\D/g, '');
+    if (!app) { $('app').focus(); return; }
+    var verifier = rnd(64), state = rnd(40);
+    store('vk_app', app); store('vk_verifier', verifier); store('vk_state', state);
+    var digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+    var q = new URLSearchParams({response_type: 'code', client_id: app, redirect_uri: REDIRECT, state: state,
+      code_challenge: b64url(digest), code_challenge_method: 'S256', scope: SCOPE});
+    location.href = 'https://id.vk.ru/authorize?' + q.toString();
+  };
+  $('again').onclick = function () { location.href = 'vk.html'; };
+  $('copy').onclick = function () {
+    var t = $('token'); t.select();
+    (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.reject()).then(function () {
+      $('copy').textContent = 'Скопировано';
+    }, function () { try { document.execCommand('copy'); $('copy').textContent = 'Скопировано'; } catch (e) {} });
+  };
+  var p = new URLSearchParams(location.search);
+  if (p.get('error')) { fail('ВК отказал: ' + (p.get('error_description') || p.get('error'))); return; }
+  if (!p.get('code')) return;
+  if (p.get('state') !== load('vk_state')) { fail('Сессия входа устарела — нажмите «Попробовать снова».'); return; }
+  $('start').style.display = 'none';
+  var body = new URLSearchParams({grant_type: 'authorization_code', code_verifier: load('vk_verifier'), redirect_uri: REDIRECT,
+    code: p.get('code'), client_id: load('vk_app'), device_id: p.get('device_id') || '', state: p.get('state')});
+  fetch('https://id.vk.ru/oauth2/auth', {method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: body})
+    .then(function (r) { return r.json(); })
+    .then(function (j) {
+      if (!j.access_token) { fail('ВК не выдал ключ: ' + (j.error_description || j.error || JSON.stringify(j))); return; }
+      history.replaceState(null, '', 'vk.html');
+      $('token').value = j.access_token;
+      $('done').style.display = 'flex';
+      if (j.scope && !/wall/.test(j.scope)) {
+        var w = document.createElement('p'); w.className = 'err';
+        w.textContent = 'Внимание: ВК не дал доступ к стене (выдано: ' + j.scope + '). Скорее всего, ключ не сможет править посты — напишите об этом Claude.';
+        $('done').insertBefore(w, $('done').firstChild);
+      }
+    })
+    .catch(function (e) { fail('Не удалось получить ключ: ' + e); });
+})();
+</script>
+</body>
+</html>

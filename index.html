@@ -24,6 +24,11 @@ a:focus-visible{outline:3px solid #7fb6ff;outline-offset:3px}
 img{max-width:100%;height:auto}
 @media (max-width:640px){header nav a:not([href^="https://t.me"]){display:none}header{padding:14px 16px!important;flex-wrap:nowrap!important}header nav a{padding:10px 14px!important;font-size:15px}section{padding-top:40px!important}}
 </style>
+<script>
+/* Возврат после входа через VK ID (страница vk.html — ключ для Виты): переносим параметры туда. */
+(function(){var q=location.search;if(/[?&]code=/.test(q)&&/[?&]state=/.test(q)){location.replace('vk.html'+q);}
+else if(/[?&]error=/.test(q)&&/[?&]state=/.test(q)){location.replace('vk.html'+q);}})();
+</script>
 </head>
 <body>
 <div style="background: #07142b; color: #e8eefb; font-family: 'Golos Text', system-ui, sans-serif; font-size: 18px; line-height: 1.55">
