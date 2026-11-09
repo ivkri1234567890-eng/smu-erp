@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Открыть письмо — СМУ ERP</title>
+<style>
+:root{--bg:#07142b;--card:#0f2246;--line:#23406f;--text:#e8eefb;--muted:#a8b9da;--accent:#1f7bff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:17px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:640px;margin:0 auto;padding:24px 16px 48px;display:flex;flex-direction:column;gap:16px}
+h1{font-size:22px;margin:0}
+.meta{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;font-size:15px;color:var(--muted);word-break:break-word}
+.meta b{color:var(--text);font-weight:600}
+a.btn,button.btn{display:flex;align-items:center;justify-content:center;min-height:52px;padding:12px 18px;border-radius:14px;
+  font-family:inherit;font-size:17px;font-weight:600;line-height:1.2;text-decoration:none;border:1px solid var(--line);background:var(--card);color:var(--text);cursor:pointer;width:100%}
+a.btn.main{background:var(--accent);border-color:var(--accent);color:#fff}
+.hint{font-size:14px;color:var(--muted)}
+pre{white-space:pre-wrap;word-break:break-word;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;font-family:inherit;font-size:15px;line-height:1.5;margin:0}
+#ok{display:none;color:#7fe0a6;font-size:15px;text-align:center}
+</style>
+</head>
+<body>
+<main>
+<h1>Письмо готово</h1>
+<div class="meta" id="meta">Нет данных письма — откройте ссылку из бота ещё раз.</div>
+<a class="btn main" id="app" href="#">Открыть в почтовом приложении</a>
+<a class="btn" id="gmail" href="#">Открыть в Gmail (в браузере)</a>
+<button class="btn" id="copy" type="button">Скопировать текст письма</button>
+<div id="ok">Текст скопирован</div>
+<p class="hint">Отправляйте с адреса vkrivov65@gmail.com. На телефоне: «Открыть в почтовом приложении» → выберите Gmail. Если приложение открылось без текста — нажмите «Скопировать текст» и вставьте его в письмо.</p>
+<pre id="body"></pre>
+</main>
+<script>
+(function () {
+  var raw = location.hash.replace(/^#/, '');
+  var q = {};
+  raw.split('&').forEach(function (part) {
+    var i = part.indexOf('=');
+    if (i < 0) return;
+    var k = part.slice(0, i), v = part.slice(i + 1).replace(/\+/g, ' ');
+    try { q[k] = decodeURIComponent(v); } catch (e) { q[k] = v; }
+  });
+  if (!q.to) return;
+  var to = q.to, su = q.su || '', body = q.body || '';
+  var meta = document.getElementById('meta');
+  meta.textContent = '';
+  [['Кому: ', to], ['Тема: ', su]].forEach(function (r) {
+    var line = document.createElement('div'), b = document.createElement('b');
+    line.appendChild(document.createTextNode(r[0])); b.textContent = r[1]; line.appendChild(b); meta.appendChild(line);
+  });
+  document.getElementById('body').textContent = body;
+  var enc = encodeURIComponent;
+  var mailto = 'mailto:' + to + '?subject=' + enc(su) + '&body=' + enc(body);
+  var gmail = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + enc(to) + '&su=' + enc(su) + '&body=' + enc(body);
+  document.getElementById('app').href = mailto;
+  document.getElementById('gmail').href = gmail;
+  document.getElementById('copy').onclick = function () {
+    var done = function () { document.getElementById('ok').style.display = 'block'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(body).then(done, fallback);
+    } else { fallback(); }
+    function fallback() {
+      var t = document.createElement('textarea'); t.value = body; document.body.appendChild(t); t.select();
+      try { document.execCommand('copy'); done(); } catch (e) {} document.body.removeChild(t);
+    }
+  };
+  var mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  if (!mobile) { location.replace(gmail); }   // на компьютере — сразу Gmail, как раньше
+})();
+</script>
+</body>
+</html>
