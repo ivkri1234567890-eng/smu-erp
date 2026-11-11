@@ -26,10 +26,12 @@ pre{white-space:pre-wrap;word-break:break-word;background:var(--card);border:1px
 <main>
 <h1>Письмо готово</h1>
 <div class="meta" id="meta">Нет данных письма — откройте ссылку из бота ещё раз.</div>
-<a class="btn main" id="app" href="#">Открыть в почтовом приложении</a>
+<a class="btn main" id="gapp" href="#">Открыть в приложении Gmail</a>
+<a class="btn" id="app" href="#">Открыть в почтовом приложении</a>
 <a class="btn" id="gmail" href="#">Открыть в Gmail (в браузере)</a>
 <button class="btn" id="copy" type="button">Скопировать текст письма</button>
 <div id="ok">Текст скопирован</div>
+<p class="hint" id="tg" style="display:none">Если кнопки не открывают приложение — это ограничение браузера Telegram: нажмите «⋮» вверху справа → «Открыть в Chrome / в браузере» и нажмите кнопку ещё раз.</p>
 <p class="hint">Отправляйте с адреса vkrivov65@gmail.com. На телефоне: «Открыть в почтовом приложении» → выберите Gmail. Если приложение открылось без текста — нажмите «Скопировать текст» и вставьте его в письмо.</p>
 <pre id="body"></pre>
 </main>
@@ -56,6 +58,12 @@ pre{white-space:pre-wrap;word-break:break-word;background:var(--card);border:1px
   var mailto = 'mailto:' + to + '?subject=' + enc(su) + '&body=' + enc(body);
   var gmail = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + enc(to) + '&su=' + enc(su) + '&body=' + enc(body);
   document.getElementById('app').href = mailto;
+  var ua = navigator.userAgent, android = /Android/i.test(ua), ios = /iPhone|iPad|iPod/i.test(ua);
+  var q2 = '?subject=' + enc(su) + '&body=' + enc(body);
+  document.getElementById('gapp').href = android
+    ? 'intent:' + to + q2 + '#Intent;scheme=mailto;package=com.google.android.gm;end'
+    : ios ? 'googlegmail:///co?to=' + enc(to) + '&subject=' + enc(su) + '&body=' + enc(body) : gmail;
+  if (/Telegram/i.test(ua) || window.TelegramWebviewProxy !== undefined) document.getElementById('tg').style.display = 'block';
   document.getElementById('gmail').href = gmail;
   document.getElementById('copy').onclick = function () {
     var done = function () { document.getElementById('ok').style.display = 'block'; };
